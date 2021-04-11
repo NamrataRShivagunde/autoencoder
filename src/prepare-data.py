@@ -6,6 +6,7 @@ import argparse
 import os
 import numpy as np
 import math
+import string
 from collections import defaultdict, Counter
 
 """
@@ -23,16 +24,22 @@ def load_data_memory_friendly(path, max_size, min_occurrences=10,
     """
     token_counter = Counter()
     size_counter = Counter()
+    line_count = 0
 
     # first pass to build vocabulary and count sentence sizes
     print('Creating vocabulary...')
     with open(path, 'rb') as f:
         for line in f:
             line = line.decode('utf-8')
+            line = line.strip('\n').lower().translate(str.maketrans('', '', string.punctuation))
             tokens = line.split()
             sent_size = len(tokens)
             if sent_size > max_size:
+                print("skipping line as size exceeds max size")
                 continue
+            else:
+                line_count = line_count + 1
+                print("processed line", line_count)
 
             # keep track of different size bins, with bins for
             # 1-10, 11-20, 21-30, etc
@@ -100,6 +107,7 @@ def create_sentence_matrix(path, num_sentences, min_size,
     with open(path, 'rb') as f:
         for line in f:
             line = line.decode('utf-8')
+            line = line.strip('\n').lower().translate(str.maketrans('', '', string.punctuation))
             tokens = line.split()
             sent_size = len(tokens)
             if sent_size < min_size or sent_size > max_size:
@@ -214,15 +222,15 @@ if __name__ == '__main__':
                                       '(by whitespace) and preprocessed')
     parser.add_argument('output', help='Directory to save the data')
     parser.add_argument('--max-length',
-                        help='Maximum sentence size (default 60)',
-                        type=int, default=60, dest='max_length')
+                        help='Maximum sentence size (default 100)',
+                        type=int, default=100, dest='max_length')
     parser.add_argument('--min-freq', help='Minimum times a word must '
-                                           'occur (default 10)',
-                        default=10, type=int, dest='min_freq')
-    parser.add_argument('--valid', type=float, default=0.01,
+                                           'occur (default 3)',
+                        default=3, type=int, dest='min_freq')
+    parser.add_argument('--valid', type=float, default=0.10,
                         dest='valid_proportion',
                         help='Proportion of the validation dataset '
-                             '(default 0.01)')
+                             '(default 0.10)')
     args = parser.parse_args()
 
     train_data, valid_data, words = load_data_memory_friendly(
