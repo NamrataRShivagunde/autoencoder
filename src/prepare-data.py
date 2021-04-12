@@ -25,7 +25,8 @@ def load_data_memory_friendly(path, max_size, min_occurrences=10,
     token_counter = Counter()
     size_counter = Counter()
     line_count = 0
-
+    lines_skipped_max_size_limit = 0
+    zero_length_lines_skipped = 0
     # first pass to build vocabulary and count sentence sizes
     print('Creating vocabulary...')
     with open(path, 'rb') as f:
@@ -35,11 +36,11 @@ def load_data_memory_friendly(path, max_size, min_occurrences=10,
             tokens = line.split()
             sent_size = len(tokens)
             if sent_size > max_size:
-                print("skipping line as size exceeds max size")
+                lines_skipped_max_size_limit = lines_skipped_max_size_limit + 1
                 continue
-            else:
-                line_count = line_count + 1
-                print("processed line", line_count)
+            elif sent_size == 0:
+                zero_length_lines_skipped = zero_length_lines_skipped + 1
+                continue
 
             # keep track of different size bins, with bins for
             # 1-10, 11-20, 21-30, etc
@@ -47,6 +48,8 @@ def load_data_memory_friendly(path, max_size, min_occurrences=10,
             size_counter[top_bin] += 1
             token_counter.update(tokens)
 
+    print("%d lines longer than %d skipped"%(lines_skipped_max_size_limit))
+    print("%d zero length linkes skipped"%(zero_length_lines_skipped))
     # sort it keeping the order
     vocabulary = [w for w, count in token_counter.most_common()
                   if count >= min_occurrences]
@@ -222,15 +225,15 @@ if __name__ == '__main__':
                                       '(by whitespace) and preprocessed')
     parser.add_argument('output', help='Directory to save the data')
     parser.add_argument('--max-length',
-                        help='Maximum sentence size (default 100)',
-                        type=int, default=100, dest='max_length')
+                        help='Maximum sentence size (default 60)',
+                        type=int, default=60, dest='max_length')
     parser.add_argument('--min-freq', help='Minimum times a word must '
-                                           'occur (default 3)',
-                        default=3, type=int, dest='min_freq')
-    parser.add_argument('--valid', type=float, default=0.10,
+                                           'occur (default 10)',
+                        default=10, type=int, dest='min_freq')
+    parser.add_argument('--valid', type=float, default=0.01,
                         dest='valid_proportion',
                         help='Proportion of the validation dataset '
-                             '(default 0.10)')
+                             '(default 0.01)')
     args = parser.parse_args()
 
     train_data, valid_data, words = load_data_memory_friendly(
